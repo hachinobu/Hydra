@@ -13,19 +13,18 @@ class ViewController: UIViewController {
 
 	override func viewDidLoad() {
 		super.viewDidLoad()
-//        promiseReduce()
-        promiseRecover()
+//        anyPromise1()
+//        anyPromise2()
+//        anyPromiseErr2()
+        anyPromiseErr3()
 	}
     
-    private func promiseRecover() {
+    private func anyPromise1() {
         
-        Promise<String> { resolve, reject in
-            return reject(PromiseError.rejected)
-//            return resolve("hachinobu")
-        }.recover { (e) -> Promise<String> in
-            return Promise(resolved: "nishinobu")
-        }.then { (s) in
-            print(s)
+        let p1 = Promise(resolved: "hachi")
+        let p2 = Promise(resolved: "nobu")
+        any([p1, p2]).then { (name) in
+            print(name)
         }
         
     }
@@ -37,6 +36,20 @@ class ViewController: UIViewController {
             return Promise(resolved: s)
         }.then { (str) in
             print(str)
+        }
+        
+    }
+    
+    private func anyPromise2() {
+        let p1 = Promise { resolve, reject in
+            resolve("hachi")
+        }
+        let p2 = Promise { resolve, reject in
+            resolve("nobu")
+        }
+        
+        any([p1, p2]).then { (name) in
+            print(name)
         }
         
     }
@@ -68,6 +81,21 @@ class ViewController: UIViewController {
             reject(PromiseError.rejected)
             }.always {
                 print("always")
+        }
+    }
+    
+    private func anyPromiseErr() {
+        let p1 = Promise { resolve, reject in
+            resolve("hachi")
+        }
+        let p2 = Promise<String> { resolve, reject in
+            reject(PromiseError.invalidInput)
+//            reject(PromiseError.invalidInput)
+//            resolve("nobu")
+        }
+        
+        any([p1, p2]).then { (name) in
+            print(name)
         }.catch { (e) -> (Void) in
             print(e)
         }
@@ -84,6 +112,34 @@ class ViewController: UIViewController {
         }
     }
 	
+    private func anyPromiseErr2() {
+
+        let p1 = Promise<String>(rejected: PromiseError.invalidInput)
+        let p2 = Promise(resolved: "adf")
+        any([p1, p2]).then { (name) in
+            print(name)
+            }.catch { (e) -> (Void) in
+                print(e)
+        }
+    }
+    
+    private func anyPromiseErr3() {
+        
+        let p1 = Promise<String> { resolve, reject in
+            reject(PromiseError.timeout)
+        }
+        let p2 = Promise<String> { _, reject in
+            reject(PromiseError.invalidContext)
+        }
+        
+        any(p1, p2).then { (str) in
+            print(str)
+        }.catch { (e) -> (Void) in
+            print(e)
+        }
+        
+    }
+    
 	func asyncFunc1() -> Promise<Int> {
 		return Promise<Int> { (resolve, reject) in
 			delay(2, context: .background, closure: {

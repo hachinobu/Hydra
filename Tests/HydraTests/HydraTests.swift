@@ -342,6 +342,21 @@ class HydraTestThen: XCTestCase {
 		}
 		waitForExpectations(timeout: expTimeout, handler: nil)
 	}
+    
+    func test_any2() {
+        let exp = expectation(description: "test_any2")
+        let promise1 = intPromise(5)
+        let promise2 = Promise<Int> { resolve, reject in
+            resolve(1)
+        }
+        any(promise1, promise2).then { result in
+            XCTAssertEqual(result, promise2.result!)
+            exp.fulfill()
+        }.catch { _ in
+            XCTFail()
+        }
+        waitForExpectations(timeout: expTimeout, handler: nil)
+    }
 	
 	/// The same test with `any` operator which takes as input an array instead of variable list of arguments
 	func test_anyWithArray() {
@@ -356,7 +371,7 @@ class HydraTestThen: XCTestCase {
 		}
 		waitForExpectations(timeout: expTimeout, handler: nil)
 	}
-	
+    
 	//MARK: All Tests
 	
 	
