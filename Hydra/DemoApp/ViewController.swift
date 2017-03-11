@@ -13,129 +13,340 @@ class ViewController: UIViewController {
 
 	override func viewDidLoad() {
 		super.viewDidLoad()
-//        anyPromise1()
-//        anyPromise2()
-//        anyPromiseErr2()
-        anyPromiseErr3()
+//        thenPromise()
+//        catchPromise()
+//        alwaysPromise()
+//        validatePromise()
+//        passPromise()
+//        recoverPromise()
+//        retryPromise()
+//        timeoutPromise()
+//        deferPromise()
+//        reducePromise()
+//        allPromise()
+//        mapPromise()
+//        anyPromise()
+//        zipPromise()
+//        async1()
+//        async2()
+//        await1()
+        asyncAwait()
 	}
     
-    private func anyPromise1() {
+    private func promise() {
         
-        let p1 = Promise(resolved: "hachi")
-        let p2 = Promise(resolved: "nobu")
-        any([p1, p2]).then { (name) in
-            print(name)
-        }
+        Promise<Int>(resolved: 10)
+        Promise<Int>(rejected: PromiseError.timeout)
         
-    }
-    
-    private func promiseReduce() {
-        
-        reduce([1, 2, 3], "hachinobu") { (str, num) in
-            let s = "\(str)\(num)"
-            return Promise(resolved: s)
-        }.then { (str) in
-            print(str)
+        let promise = Promise { resolve, reject in
+            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 1.0) {
+                resolve("hachinobu")
+            }
         }
         
     }
     
-    private func anyPromise2() {
-        let p1 = Promise { resolve, reject in
-            resolve("hachi")
-        }
-        let p2 = Promise { resolve, reject in
-            resolve("nobu")
+    private func thenPromise() {
+        
+        Promise<String> { resolve, reject in
+            
+            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 1.0) {
+                resolve("hachinobu")
+            }
+        }.then { result -> Int in
+            print(result)
+            return 100
+        }.then { result -> Promise<Date> in
+            print(result)
+            return Promise(resolved: Date())
+        }.then { result in
+            print(result)
         }
         
-        any([p1, p2]).then { (name) in
-            print(name)
+    }
+    
+    private func catchPromise() {
+        
+        Promise<String>{ resolve, reject in
+            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 1.0) {
+                reject(PromiseError.rejected)
+            }
+        }.catch { error in
+            print(error)
+            throw PromiseError.timeout
+        }.then { void in
+            print("pun")
+        }.catch { e in
+            print(e)
         }
         
     }
     
-    private func promiseAll() {
-        let a = Promise(resolved: "a")
-        let b = Promise(resolved: "b")
-        let c = Promise(resolved: "c")
-        all([a, b, c]).then { (strs) in
-            print(strs)
-        }
-//        all(a, b, c).then { (strs) in
-//            
-//        }
-    }
-    
-    private func promiseMap() {
-        let strings = ["a", "b", "c", "d"]
-        map(as: .parallel, strings) { (str) -> Promise<Int> in
-            print(str)
-            return Promise(resolved: 1)
-        }.then { (nums) in
-            print(nums)
-        }
-    }
-    
-    private func always() {
-        Promise<String> { success, reject in
-            reject(PromiseError.rejected)
+    private func alwaysPromise() {
+        
+        //catchの後だとPromise<Void>になるのでcatchより前にthenを書くこと
+        Promise { resolve, reject in
+            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 1.0) {
+                resolve("hachinobu")
+            }
             }.always {
                 print("always")
-        }
-    }
-    
-    private func anyPromiseErr() {
-        let p1 = Promise { resolve, reject in
-            resolve("hachi")
-        }
-        let p2 = Promise<String> { resolve, reject in
-            reject(PromiseError.invalidInput)
-//            reject(PromiseError.invalidInput)
-//            resolve("nobu")
-        }
-        
-        any([p1, p2]).then { (name) in
-            print(name)
-        }.catch { (e) -> (Void) in
-            print(e)
-        }
-    }
-    
-    private func retry() {
-        Promise<String> { resolve, reject in
-            reject(PromiseError.rejected)
-        }.retry()
-            .then { (n) in
-                print(n)
-            }.catch { (e) -> (Void) in
-            print(e)
-        }
-    }
-	
-    private func anyPromiseErr2() {
-
-        let p1 = Promise<String>(rejected: PromiseError.invalidInput)
-        let p2 = Promise(resolved: "adf")
-        any([p1, p2]).then { (name) in
-            print(name)
+        }.then { result in
+            print(result)
+            }.always {
+                print("always2")
+        }.then { (result) -> Int in
+            return 888
+//            throw PromiseError.invalidInput
+            }.always {
+                print("always3")
+            }.then { result in
+                print(result)
             }.catch { (e) -> (Void) in
                 print(e)
+            }.always {
+                print("always4")
         }
+        
     }
     
-    private func anyPromiseErr3() {
+    private func validatePromise() {
         
-        let p1 = Promise<String> { resolve, reject in
-            reject(PromiseError.timeout)
-        }
-        let p2 = Promise<String> { _, reject in
-            reject(PromiseError.invalidContext)
-        }
-        
-        any(p1, p2).then { (str) in
-            print(str)
-        }.catch { (e) -> (Void) in
+        Promise { resolve, reject in
+            resolve("hachinobu")
+        }.validate { result in
+            result == "8nobu"
+        }.then { result in
+            print(result)
+        }.catch { e in
             print(e)
+        }.then { (result) in
+            print("after catch")
+        }
+        
+    }
+    
+    private func recoverPromise() {
+        
+        Promise<String> { resolve, reject in
+            
+            print("start")
+            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 1.0) {
+                reject(PromiseError.timeout)
+            }
+        }.recover { error -> Promise<String> in
+            print("recover")
+            throw PromiseError.rejected
+//            return Promise(resolved: "hachinobu")
+        }.then { result in
+            print(result)
+        }.catch { e in
+            print(e)
+        }
+        
+    }
+    
+    private func passPromise() {
+        
+        Promise { resolve, reject in
+            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 1.0) {
+                resolve("hachinobu")
+            }
+        }.pass { result -> Promise<Int> in
+            print("pass \(result)")
+            return Promise(resolved: 8)
+        }.then { result in
+            print(result)
+        }
+        
+    }
+    
+    private func retryPromise() {
+        
+        Promise<String> { resolve, reject in
+            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 1.0) {
+                reject(PromiseError.rejected)
+//                resolve("hachinobu")
+            }
+        }.retry(3) { (num, error) -> Bool in
+            print("retry")
+            return num != 0
+        }.then { result in
+            print(result)
+        }.catch { err in
+            print(err)
+        }
+        
+    }
+    
+    private func timeoutPromise() {
+        
+        Promise<String> { resolve, reject in
+            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 3.0) {
+//                reject(PromiseError.rejected)
+                resolve("hachinobu")
+            }
+        }.timeout(timeout: 2.0).then { result in
+            print(result)
+        }.catch { err in
+            print(err)
+        }
+        
+    }
+    
+    private func deferPromise() {
+        
+        Promise { resolve, reject in
+            resolve("hachinobu")
+        }.defer(3.0).then { result in
+            print(result)
+        }
+        
+    }
+    
+    private func reducePromise() {
+        
+        reduce(["ha", "chi", "no", "bu"], 0) { (num, item) -> Promise<Int> in
+            Promise(resolved: num + 1)
+        }.then { result in
+            print(result)
+        }
+        
+    }
+    
+    private func allPromise() {
+        let promise1 = Promise(resolved: "hachi")
+        let promise2 = Promise { resolve, reject in
+            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 3.0) {
+                resolve("hachinobu")
+            }
+        }
+        
+        all(promise1, promise2).then { results in
+            print(results)
+        }.catch { e in
+            print(e)
+        }
+        
+    }
+    
+    private func mapPromise() {
+        
+        map(as: .series, ["ha", "chi", "no", "bu"]) { str -> Promise<String> in
+            return Promise(resolved: "\(str) 8")
+        }.then { (results) in
+            print(results)
+        }
+        
+    }
+    
+    private func anyPromise() {
+        
+        let promise1 = Promise { resolve, reject in
+            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 3.0) {
+                resolve("hachi")
+            }
+        }
+        let promise2 = Promise { resolve, reject in
+            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 2.0) {
+                resolve("nobu")
+            }
+        }
+        
+        any(promise1, promise2).then { result in
+            print(result)
+        }
+        
+    }
+    
+    private func zipPromise() {
+        
+        let promise1 = Promise { resolve, reject in
+            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 2.0) {
+                resolve("hachinobu")
+            }
+        }
+        
+        let promise2 = Promise { resolve, reject in
+            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 2.0) {
+                resolve(888)
+            }
+        }
+        
+        zip(promise1, promise2).then { (str, num) -> Void in
+            print(str)
+            print(num)
+        }
+        
+    }
+    
+    private func async1() {
+        
+        async { _ in
+            return "hachinobu"
+        }.then { result in
+            print(result)
+        }
+        
+    }
+    
+    private func async2() {
+        
+        async(in: .background, after: 2.0) { _ in
+            print("hachi")
+        }
+        
+    }
+    
+    private func await1() {
+        
+        async { _ -> String in
+            
+            let promise1 = Promise(resolved: "hachinobu")
+            let promise2 = self.asyncFunc1()
+            
+            let name = try await(promise1)
+            print(name)
+            
+            let num = try await(promise2)
+            print(num)
+            
+            let result = try await({ (resolve: @escaping (String) -> (), reject: @escaping (Error) -> ()) in
+//                reject(PromiseError.rejected)
+                resolve("aaaaa")
+            })
+            
+            return "\(name) \(num) \(result)"
+            
+        }.then { result in
+            print(result)
+        }.catch { e in
+            print(e)
+        }
+        
+    }
+    
+    private func asyncAwait() {
+        
+        async { () -> String in 
+            
+//            let result1 = try ..Promise<String>(resolved: "hachinobu")
+//            let result2 = try ..Promise<Int>(resolved: 8)
+//            
+//            return "\(result1) + \(result2)"
+            
+            do {
+                
+                let result1 = try ..Promise(resolved: "hachinobu")
+                let result2 = try ..Promise(resolved: 8)
+                
+                return "\(result1) + \(result2)"
+            } catch {
+                throw PromiseError.invalidInput
+            }
+            
+        }.then { result in
+            print(result)
         }
         
     }
@@ -158,7 +369,7 @@ class ViewController: UIViewController {
 
 	override func didReceiveMemoryWarning() {
 		super.didReceiveMemoryWarning()
-
+        
 	}
 
 
