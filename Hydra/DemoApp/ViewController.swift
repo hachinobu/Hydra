@@ -30,8 +30,23 @@ class ViewController: UIViewController {
 //        async1()
 //        async2()
 //        await1()
-        asyncAwait()
+//        asyncAwait()
+        semaphore()
 	}
+    
+    private func semaphore() {
+        
+        let semaphore = DispatchSemaphore(value: 0)
+        DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 2.0) { 
+            print("async")
+            semaphore.signal()
+        }
+        
+        //semaphoreのおかげでwaitがasyncの後にprintされる
+        _ = semaphore.wait(timeout: DispatchTime(uptimeNanoseconds: UInt64.max))
+        print("wait")
+        
+    }
     
     private func promise() {
         
@@ -216,7 +231,7 @@ class ViewController: UIViewController {
     
     private func allPromise() {
         let promise1 = Promise(resolved: "hachi")
-        let promise2 = Promise { resolve, reject in
+        let promise2 = Promise<String> { resolve, reject in
             DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 3.0) {
                 resolve("hachinobu")
             }
@@ -242,14 +257,15 @@ class ViewController: UIViewController {
     
     private func anyPromise() {
         
-        let promise1 = Promise { resolve, reject in
+        let promise1 = Promise<String> { resolve, reject in
             DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 3.0) {
+                print("justin")
                 resolve("hachi")
             }
         }
         let promise2 = Promise { resolve, reject in
             DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 2.0) {
-                resolve("nobu")
+                return resolve("nobu")
             }
         }
         
@@ -273,7 +289,7 @@ class ViewController: UIViewController {
             }
         }
         
-        zip(promise1, promise2).then { (str, num) -> Void in
+        Promise<Void>.zip(promise1, promise2).then { (str, num) -> Void in
             print(str)
             print(num)
         }
