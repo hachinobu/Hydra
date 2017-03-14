@@ -55,15 +55,11 @@ public func any<L>(in context: Context? = nil, _ promises: [Promise<L>]) -> Prom
 		return Promise<L>(rejected: PromiseError.invalidInput)
 	}
 	let anyPromise = Promise<L> { (resolve, reject) in
-        promises.forEach {
-            $0.add(in: context, onResolve: resolve, onReject: reject)
-            $0.runBody()
-        }
-//		for currentPromise in promises {
-//			// first promises which resolve is returned
-//			currentPromise.add(in: context, onResolve: resolve, onReject: reject)
-//            currentPromise.runBody()
-//		}
+		for currentPromise in promises {
+			// first promises which resolve is returned
+			currentPromise.add(in: context, onResolve: resolve, onReject: reject)
+			currentPromise.runBody()
+		}
 	}
 	return anyPromise
 }
