@@ -59,6 +59,7 @@ public enum PromiseError: Error {
 /// - rejected: final state. Promise was rejected with given error.
 internal enum State<Value> {
 	case pending
+	case running
 	case resolved(_: Value)
 	case rejected(_: Error)
 	
@@ -79,6 +80,22 @@ internal enum State<Value> {
 		guard case .pending = self else { return false }
 		return true
 	}
+	
+	/// Return `true` if the promise is in `running` state, `false` otherwise.
+	var isRunning: Bool {
+		guard case .running = self else { return false }
+		return true
+	}
+	
+	var isSettled: Bool {
+		switch self {
+		case .pending, .running:
+			return false
+		default:
+			return true
+		}
+	}
+	
 }
 
 

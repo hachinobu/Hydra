@@ -37,7 +37,7 @@ public class Promise<Value> {
 	public typealias Resolved = (Value) -> ()
 	public typealias Rejector = (Error) -> ()
 	public typealias Body = ((_ resolve: @escaping Resolved, _ reject: @escaping Rejector) throws -> ())
-
+	
 	/// State of the Promise. Initially a promise has a `pending` state.
 	internal var state: State<Value> = .pending
 	
@@ -55,10 +55,6 @@ public class Promise<Value> {
 	
 	/// Observers of the promise; define a callback called in specified context with the result of resolve/reject of the promise
 	private var observers: [Observer<Value>] = []
-	
-	/// Is body of the promise called
-	/// It's used to prevent multiple call of the body on operators chaining
-	internal var bodyCalled: Bool = false
 	
 	/// Optional promise identifier
 	public var name: String?
@@ -87,21 +83,19 @@ public class Promise<Value> {
 		}
 	}
 	
-	
-	/// Thread safe property which return if `body` of the promise is already called or not.
-	private var isBodyExecuted: Bool {
+	/// Thread safe property which return if the promise is currently in a `running` state.
+	/// A running promise it's a promise which is not resolved yet.
+	public var isRunning: Bool {
 		return stateQueue.sync {
-			return self.bodyCalled
+			return self.state.isRunning
 		}
 	}
-	
 	
 	/// Initialize a new Promise in a resolved state with given value.
 	///
 	/// - Parameter value: value to set
 	public init(resolved value: Value) {
 		self.state = .resolved(value)
-		self.bodyCalled = true
 	}
 	
 	
@@ -110,7 +104,6 @@ public class Promise<Value> {
 	/// - Parameter error: error to set
 	public init(rejected error: Error) {
 		self.state = .rejected(error)
-		self.bodyCalled = true
 	}
 	
 	
@@ -138,10 +131,10 @@ public class Promise<Value> {
 	/// In order to be runnable, the state of the promise must be pending and the body itself must not be called another time.
 	internal func runBody() {
 		self.stateQueue.sync {
-			if !state.isPending || bodyCalled {
+			if !self.state.isPending {
 				return
 			}
-			bodyCalled = true
+			self.state = .running
 			
 			// execute the body into given context's gcd queue
 			self.context.queue.async {
@@ -168,7 +161,7 @@ public class Promise<Value> {
 		self.stateQueue.sync {
 			// a promise state can be changed only if the current state is pending
 			// once resolved or rejected state cannot be change further.
-			guard self.state.isPending else {
+			if self.state.isSettled {
 				return
 			}
 			self.state = newState // change state
@@ -208,7 +201,7 @@ public class Promise<Value> {
 	internal func add(observers: Observer<Value>...) {
 		self.stateQueue.sync {
 			self.observers.append(contentsOf: observers)
-			if self.state.isPending {
+			guard self.state.isSettled else {
 				return
 			}
 			self.observers.forEach { observer in
@@ -217,7 +210,7 @@ public class Promise<Value> {
 			self.observers.removeAll()
 		}
 	}
-
+	
 	
 	/// Transform given promise to a void promise
 	///
@@ -231,7 +224,6 @@ public class Promise<Value> {
 	/// Reset the state of the promise
 	internal func resetState() {
 		self.stateQueue.sync {
-			self.bodyCalled = false
 			self.state = .pending
 		}
 	}
